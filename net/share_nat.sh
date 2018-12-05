@@ -17,6 +17,14 @@ fi
 IF_INTERNAL=$1
 IF_EXTERNAL=$2
 sysctl net.ipv4.ip_forward=1
+trap clear EXIT TERM
+
+clear(){
+	iptables -D POSTROUTING -t nat -o "$IF_EXTERNAL" -j MASQUERADE
+	iptables -D FORWARD -i "$IF_INTERNAL" -o "$IF_EXTERNAL" -j ACCEPT
+	iptables -D FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
+}
+
 iptables -A POSTROUTING -t nat -o "$IF_EXTERNAL" -j MASQUERADE
 iptables -A FORWARD -i "$IF_INTERNAL" -o "$IF_EXTERNAL" -j ACCEPT
 iptables -A FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT
@@ -24,7 +32,3 @@ iptables -L -t nat -nv
 
 echo "Press ENTER to remove the rules again..."
 read -r
-
-iptables -D POSTROUTING -t nat -o "$IF_EXTERNAL" -j MASQUERADE
-iptables -D FORWARD -i "$IF_INTERNAL" -o "$IF_EXTERNAL" -j ACCEPT
-iptables -D FORWARD -m conntrack --ctstate RELATED,ESTABLISHED -j ACCEPT

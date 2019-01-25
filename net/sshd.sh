@@ -53,9 +53,8 @@ ChallengeResponseAuthentication yes
 UsePAM no
 AllowAgentForwarding yes
 AllowTcpForwarding yes
-Tunnel point-to-point
 PrintMotd no
 Subsystem       sftp    /usr/lib/ssh/sftp-server
 EOF"
 
-socat tcp-l:$port,fork,reuseaddr exec:"sshd -i -e -f $tmp_dir/sshd_config" 2>/dev/null
+socat tcp-l:$port,fork,reuseaddr exec:"sshd -i -e -f $tmp_dir/sshd_config"

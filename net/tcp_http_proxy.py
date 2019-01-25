@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+"""Forward TCP traffic from a host über a
+HTTP proxy."""
 import asyncio
 import logging
 import argparse

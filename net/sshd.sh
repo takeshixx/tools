@@ -35,7 +35,11 @@ trap "rm -rf $tmp_dir" EXIT TERM
 key="ecdsa-sha2-nistp256 AAAAE2VjZHNhLXNoYTItbmlzdHAyNTYAAAAIbmlzdHA"
 key+="yNTYAAABBBA9ukl2vNHAxZwMNYYgH91v/wCCqMZWmtqj2KZdNAD2AMBOJgbpvI"
 key+="IH6LvlxIpzeZ0zitmqlIF+mn30h/wKi6kc= takeshix@WOPR"
-echo "$key" > $tmp_dir/authorized_keys
+# Apply restrictions to the SSH key. Only reverse port forwarding
+# to the local sshd instance should be allowed.
+restrictions="restrict,command=\"/bin/false\",port-forwarding,"
+restrictions+="permitopen=\"127.0.0.1:22\""
+echo "${restrictions} ${key}" > $tmp_dir/authorized_keys
 
 chmod 700 $tmp_dir
 chmod 600 $tmp_dir/authorized_keys

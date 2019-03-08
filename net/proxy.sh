@@ -4,8 +4,8 @@ set -e
 script=${0##*/}
 
 if [ $# -lt 3 ];then
-    echo "Usage: ${script} <type> <proxy> <port> <command>" >&2
-    echo "Example: ${script} http 127.0.0.1 8080 curl ipinfo.io" >&2
+    echo "Usage: ${script} [http|socks4|socks4a|socks5] [proxy] [port] [command>]" >&2
+    echo "Example: ${script} http 127.0.0.1 8080 curl myip.space" >&2
     exit 2
 fi
 

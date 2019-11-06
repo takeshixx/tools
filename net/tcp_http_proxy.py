@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Forward TCP traffic from a host über a
+"""Forward TCP traffic from a host over a
 HTTP proxy."""
 import asyncio
 import logging

@@ -1,7 +1,7 @@
 #!/bin/bash
 # Temporarily block all outgoing traffic
 # on a given interface. Useful for passive
-# netowkr analysis.
+# network analysis.
 if [ $# -nq 1 ];then
     echo "Usage: ${0} [interface]"
 fi

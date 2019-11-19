@@ -4,6 +4,22 @@
 
 Temporarily block all outgoing traffic on a given interface. Useful for passive network analysis.
 
+## [go_netcat.go](go_netcat.go)
+
+A simple netcat implemantion in Golang that is meant to be easily extendable.
+
+Building for Linux:
+
+```bash
+go build -o gonc go_netcat.go
+```
+
+Building for Windows:
+
+```bash
+GOOS=windows GOARCH=386 go build -o gonc go_netcat.go
+```
+
 ## [http_server.go](http_server.go)
 
 A simple webserver for sharing (dir listing) and uploading files. It is meant to be easily extendable.

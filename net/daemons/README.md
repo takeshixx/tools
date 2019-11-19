@@ -9,6 +9,22 @@ pip install twisted
 python http_connect_proxy.py 8080
 ```
 
+## [http_server.go](http_server.go)
+
+A simple webserver for sharing (dir listing) and uploading files. It is meant to be easily extendable.
+
+Building for Linux:
+
+```bash
+go build -o http_server http_server.go
+```
+
+Building for Windows:
+
+```bash
+GOOS=windows GOARCH=386 go build -o http_server http_server.go
+```
+
 ## FTP Server
 
 A simple FTP server with anonymous login with Twisted. Shares the current directory via FTP.

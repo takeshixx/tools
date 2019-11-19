@@ -11,13 +11,13 @@ A simple webserver for sharing (dir listing) and uploading files. It is meant to
 Building for Linux:
 
 ```bash
-go guild -o http_server http_server.go
+go build -o http_server http_server.go
 ```
 
 Building for Windows:
 
 ```bash
-GOOS=windows GOARCH=386 go guild -o http_server http_server.go
+GOOS=windows GOARCH=386 go build -o http_server http_server.go
 ```
 
 ## [observe.py](observe.py)

@@ -4,6 +4,22 @@
 
 Temporarily block all outgoing traffic on a given interface. Useful for passive network analysis.
 
+## [http_server.go](http_server.go)
+
+A simple webserver for sharing (dir listing) and uploading files. It is meant to be easily extendable.
+
+Building for Linux:
+
+```bash
+go guild -o http_server http_server.go
+```
+
+Building for Windows:
+
+```bash
+GOOS=windows GOARCH=386 go guild -o http_server http_server.go
+```
+
 ## observe.py
 
 Print packets from a specific IP/MAC on a given interface or a pcap file. Useful to see only packets from a specific host.

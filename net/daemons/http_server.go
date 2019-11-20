@@ -3,6 +3,7 @@
 package main
 
 import (
+	"crypto/subtle"
 	"flag"
 	"fmt"
 	"io"
@@ -24,6 +25,25 @@ const html_upload_form = `<html>
 		</form>
     </body>
 </html>`
+
+func httpBasicAuth(handler http.HandlerFunc, username, password, realm string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		user, pass, ok := r.BasicAuth()
+		if !ok || subtle.ConstantTimeCompare([]byte(user), []byte(username)) != 1 || subtle.ConstantTimeCompare([]byte(pass), []byte(password)) != 1 {
+			w.Header().Set("WWW-Authenticate", `Basic realm="`+realm+`"`)
+			w.WriteHeader(401)
+			w.Write([]byte("Unauthorized.\n"))
+			return
+		}
+		handler(w, r)
+	}
+}
+
+func handlerAuthWrapper(h http.Handler, user string, pass string, realm string) http.Handler {
+	return httpBasicAuth(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+	}), user, pass, realm)
+}
 
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
@@ -64,10 +84,17 @@ func main() {
 	}
 	sslCert := flag.String("ssl-cert", "", "SSL/TLS certificate")
 	sslKey := flag.String("ssl-key", "", "SSL/TLS private key")
+	authUser := flag.String("auth-user", "", "HTTP Basic Authentication user name")
+	authPass := flag.String("auth-pass", "", "HTTP Basic Authentication password")
 	flag.Parse()
 	listeningSocket := fmt.Sprintf("%s:%d", *host, *port)
-	http.HandleFunc("/upload", uploadHandler)
-	http.Handle("/", http.FileServer(http.Dir(absoluteDir)))
+	if *authUser != "" && *authPass != "" {
+		http.HandleFunc("/upload", httpBasicAuth(uploadHandler, *authUser, *authPass, "Please provide login credentials"))
+		http.Handle("/", handlerAuthWrapper(http.FileServer(http.Dir(absoluteDir)), *authUser, *authPass, "Please provide login credentials"))
+	} else {
+		http.HandleFunc("/upload", uploadHandler)
+		http.Handle("/", http.FileServer(http.Dir(absoluteDir)))
+	}
 	if *sslCert != "" {
 		fmt.Println("Listening on socket: " + listeningSocket)
 		log.Fatal(http.ListenAndServeTLS(listeningSocket, *sslCert, *sslKey, nil))

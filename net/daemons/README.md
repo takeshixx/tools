@@ -32,3 +32,21 @@ Building for Windows:
 ```bash
 GOOS=windows GOARCH=386 go build -o http_server http_server.go
 ```
+
+Run `http_server` to share the current directory (defaults to port 8080):
+
+```
+http_server
+```
+
+Run with SSL/TLS:
+
+```
+http_server --ssl-cert fullchain1.pem --ssl-key privkey1.pem
+```
+
+Run with HTTP Basic Authentication:
+
+```
+http_server --auth-user operator --auth-pass supersecret
+```

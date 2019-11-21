@@ -118,8 +118,8 @@ func main() {
 		log.Fatal("Could not get absolute path")
 		return
 	}
-	host := flag.String("host", "", "listening host IP (default: 0.0.0.0)")
-	port := flag.Int("port", 8080, "listening port (default: 8080)")
+	host := flag.String("host", "0.0.0.0", "listening host IP")
+	port := flag.Int("port", 8080, "listening port")
 	if *port < 1 || *port > 65535 {
 		log.Fatal("Invalid port")
 		return

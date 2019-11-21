@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -53,7 +54,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		r.ParseMultipartForm(32 << 20)
 		file, handler, err := r.FormFile("uploadfile")
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 		defer file.Close()
@@ -61,12 +62,53 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		fileName := filepath.Base(handler.Filename)
 		f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
-			fmt.Println(err)
+			log.Println(err)
 			return
 		}
 		defer f.Close()
 		io.Copy(f, file)
 	}
+}
+
+func stdio_handle(con net.Conn) {
+	chan_to_stdout := stream_copy(con, os.Stdout)
+	chan_to_remote := stream_copy(os.Stdin, con)
+	select {
+	case <-chan_to_stdout:
+		log.Println("Remote connection is closed")
+	case <-chan_to_remote:
+		log.Println("Local program is terminated")
+	}
+}
+
+func stream_copy(src io.Reader, dst io.Writer) <-chan int {
+	buf := make([]byte, 1024)
+	sync_channel := make(chan int)
+	go func() {
+		defer func() {
+			if con, ok := dst.(net.Conn); ok {
+				con.Close()
+				log.Printf("Connection from %v is closed\n", con.RemoteAddr())
+			}
+			sync_channel <- 0 // Notify that processing is finished
+		}()
+		for {
+			var nBytes int
+			var err error
+			nBytes, err = src.Read(buf)
+			if err != nil {
+				if err != io.EOF {
+					log.Printf("Read error: %s\n", err)
+				}
+				break
+			}
+			_, err = dst.Write(buf[0:nBytes])
+			if err != nil {
+				log.Fatalf("Write error: %s\n", err)
+			}
+		}
+	}()
+	return sync_channel
 }
 
 func main() {
@@ -86,6 +128,7 @@ func main() {
 	sslKey := flag.String("ssl-key", "", "SSL/TLS private key")
 	authUser := flag.String("auth-user", "", "HTTP Basic Authentication user name")
 	authPass := flag.String("auth-pass", "", "HTTP Basic Authentication password")
+	unixSocket := flag.Bool("unix", false, "use a Unix socket instead of TCP")
 	flag.Parse()
 	listeningSocket := fmt.Sprintf("%s:%d", *host, *port)
 	if *authUser != "" && *authPass != "" {
@@ -95,11 +138,25 @@ func main() {
 		http.HandleFunc("/upload", uploadHandler)
 		http.Handle("/", http.FileServer(http.Dir(absoluteDir)))
 	}
-	if *sslCert != "" {
-		fmt.Println("Listening on socket: " + listeningSocket)
+	if *unixSocket {
+		log.Println("Using Unix socket")
+		if _, err := os.Stat("/tmp/http_server.sock"); err == nil {
+			err = os.Remove("/tmp/http_server.sock")
+			if err != nil {
+				log.Fatal("Could not delete existing Unix socket")
+			}
+		}
+		unixListener, errL := net.Listen("unix", "/tmp/http_server.sock")
+		if errL != nil {
+			log.Fatal("Failed to create unix socket: ", errL)
+		}
+		defer unixListener.Close()
+		http.Serve(unixListener, nil)
+	} else if *sslCert != "" {
+		log.Println("Listening on socket: " + listeningSocket)
 		log.Fatal(http.ListenAndServeTLS(listeningSocket, *sslCert, *sslKey, nil))
 	} else {
-		fmt.Println("Listening on socket: " + listeningSocket)
+		log.Println("Listening on socket: " + listeningSocket)
 		log.Fatal(http.ListenAndServe(listeningSocket, nil))
 	}
 }

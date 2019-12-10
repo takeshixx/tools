@@ -81,6 +81,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer f.Close()
 		io.Copy(f, file)
+		log.Printf("Uploaded file: %s\n", fileName)
 	}
 }
 

@@ -8,10 +8,12 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 const html_upload_form = `<html>
@@ -26,6 +28,18 @@ const html_upload_form = `<html>
 		</form>
     </body>
 </html>`
+
+var seededRand *rand.Rand = rand.New(rand.NewSource(time.Now().UnixNano()))
+
+func randomString(length int) string {
+	charset := "abcdefghijklmnopqrstuvwxyz" +
+		"ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+	b := make([]byte, length)
+	for i := range b {
+		b[i] = charset[seededRand.Intn(len(charset))]
+	}
+	return string(b)
+}
 
 func httpBasicAuth(handler http.HandlerFunc, username, password, realm string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -124,14 +138,19 @@ func main() {
 		log.Fatal("Invalid port")
 		return
 	}
+	randPassword := randomString(8)
 	sslCert := flag.String("ssl-cert", "", "SSL/TLS certificate")
 	sslKey := flag.String("ssl-key", "", "SSL/TLS private key")
-	authUser := flag.String("auth-user", "", "HTTP Basic Authentication user name")
-	authPass := flag.String("auth-pass", "", "HTTP Basic Authentication password")
+	authUser := flag.String("auth-user", "operator", "HTTP Basic Authentication user name")
+	authPass := flag.String("auth-pass", randPassword, "HTTP Basic Authentication password")
+	authBypass := flag.Bool("no-auth", false, "do not enforce authentication")
 	unixSocket := flag.Bool("unix", false, "use a Unix socket instead of TCP")
 	flag.Parse()
 	listeningSocket := fmt.Sprintf("%s:%d", *host, *port)
-	if *authUser != "" && *authPass != "" {
+	if !*authBypass {
+		if *authPass == randPassword {
+			log.Printf("Authentication data: %s:%s\n", *authUser, *authPass)
+		}
 		http.HandleFunc("/upload", httpBasicAuth(uploadHandler, *authUser, *authPass, "Please provide login credentials"))
 		http.Handle("/", handlerAuthWrapper(http.FileServer(http.Dir(absoluteDir)), *authUser, *authPass, "Please provide login credentials"))
 	} else {

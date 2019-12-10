@@ -128,17 +128,8 @@ func stream_copy(src io.Reader, dst io.Writer) <-chan int {
 
 func main() {
 	rootDir := flag.String("root", ".", "root directory")
-	absoluteDir, err := filepath.Abs(*rootDir)
-	if err != nil {
-		log.Fatal("Could not get absolute path")
-		return
-	}
 	host := flag.String("host", "0.0.0.0", "listening host IP")
 	port := flag.Int("port", 8080, "listening port")
-	if *port < 1 || *port > 65535 {
-		log.Fatal("Invalid port")
-		return
-	}
 	randPassword := randomString(8)
 	sslCert := flag.String("ssl-cert", "", "SSL/TLS certificate")
 	sslKey := flag.String("ssl-key", "", "SSL/TLS private key")
@@ -147,6 +138,17 @@ func main() {
 	authBypass := flag.Bool("no-auth", false, "do not enforce authentication")
 	unixSocket := flag.Bool("unix", false, "use a Unix socket instead of TCP")
 	flag.Parse()
+
+	absoluteDir, err := filepath.Abs(*rootDir)
+	if err != nil {
+		log.Fatal("Could not get absolute path")
+		return
+	}
+	log.Printf("Using root directory: %s\n", absoluteDir)
+	if *port < 1 || *port > 65535 {
+		log.Fatal("Invalid port")
+		return
+	}
 	listeningSocket := fmt.Sprintf("%s:%d", *host, *port)
 	if !*authBypass {
 		if *authPass == randPassword {

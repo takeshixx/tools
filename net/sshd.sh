@@ -10,6 +10,7 @@ function help(){
     echo "-k/--public-key       ssh public key for remote access"
     echo "-r/--restrictions     ssh restrictions for remote access"
     echo "                      valid options: none, nocmd"
+    echo "-s/--sshd-bin         provide alternative sshd binary path"
     echo "-v/--verbose          print verbose sshd output (repeat for more output)"
     echo "-h/--help             print this help page"
     exit 1
@@ -57,6 +58,7 @@ fi
 PORT=
 PUB_KEY=
 NO_RESTRICTIONS=
+SSHD_BIN=
 VERBOSE=0
 POSITIONAL=()
 while [[ $# -gt 0 ]];do
@@ -69,6 +71,11 @@ while [[ $# -gt 0 ]];do
         ;;
         -r|--restrictions)
         NO_RESTRICTIONS="$2"
+        shift
+        shift
+        ;;
+        -s|--sshd-bin)
+        SSHD_BIN="$2"
         shift
         shift
         ;;
@@ -184,7 +191,12 @@ PrintMotd no
 Subsystem       sftp    /usr/lib/ssh/sftp-server
 EOF"
 
-sshd_cmd="sshd -i -e -f $tmp_dir/sshd_config"
+sshd_bin="sshd"
+if [ -n "$SSHD_BIN" -a -x "$SSHD_BIN" ];then
+    info "Using sshd binary ${SSHD_BIN}"
+    sshd_bin="$SSHD_BIN"
+fi
+sshd_cmd="${sshd_bin} -i -e -f $tmp_dir/sshd_config"
 if [ "$VERBOSE" -eq 1 ];then
     sshd_cmd+=" -d"
 elif [ "$VERBOSE" -eq 2 ];then

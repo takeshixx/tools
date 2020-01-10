@@ -125,7 +125,7 @@ if ($sshdbin -ne ""){
       exit 1
    }
 }
-$sshd_cmd = "& $($sshd) -d -p $port -f $($tmp_dir)/sshd_config"
+$sshd_cmd = "& $($sshd) -p $port -f $($tmp_dir)/sshd_config"
 if ($verbose){
    $sshd_cmd += " -d"
 }

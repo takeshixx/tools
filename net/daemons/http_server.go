@@ -18,7 +18,7 @@ import (
 	"time"
 )
 
-const html_upload_form = `<html>
+const uploadForm = `<html>
     <head>
     <title></title>
     </head>
@@ -100,7 +100,7 @@ func handlerLogWrapper(h http.Handler, logRespBody bool) http.Handler {
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		fmt.Fprintf(w, "%v", html_upload_form)
+		fmt.Fprintf(w, "%v", uploadForm)
 	} else {
 		r.ParseMultipartForm(32 << 20)
 		file, handler, err := r.FormFile("uploadfile")
@@ -109,7 +109,6 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		defer file.Close()
-		fmt.Fprintf(w, "%v", handler.Header)
 		fileName := filepath.Base(handler.Filename)
 		f, err := os.OpenFile(fileName, os.O_WRONLY|os.O_CREATE, 0666)
 		if err != nil {
@@ -118,6 +117,7 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		defer f.Close()
 		io.Copy(f, file)
+		fmt.Fprintf(w, "Successfully uploaded file %s (%v)", fileName, handler.Header)
 		log.Printf("Uploaded file: %s\n", fileName)
 	}
 }

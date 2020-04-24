@@ -11,6 +11,8 @@ import (
 	"math/rand"
 	"net"
 	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
 	"os"
 	"path/filepath"
 	"time"
@@ -60,6 +62,41 @@ func handlerAuthWrapper(h http.Handler, user string, pass string, realm string) 
 	}), user, pass, realm)
 }
 
+func logHandler(handler http.HandlerFunc, logRespBody bool) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		reqData, err := httputil.DumpRequest(r, true)
+		if err != nil {
+			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+			return
+		}
+
+		rec := httptest.NewRecorder()
+		handler(rec, r)
+
+		respData, err := httputil.DumpResponse(rec.Result(), logRespBody)
+		if err != nil {
+			http.Error(w, fmt.Sprint(err), http.StatusInternalServerError)
+			return
+		}
+
+		logString := fmt.Sprintf("===REQUEST===\n%s\n===RESPONSE===\n%s", reqData, respData)
+		log.Println(logString)
+
+		// This copies the recorded response to the response writer
+		for k, v := range rec.HeaderMap {
+			w.Header()[k] = v
+		}
+		w.WriteHeader(rec.Code)
+		rec.Body.WriteTo(w)
+	}
+}
+
+func handlerLogWrapper(h http.Handler, logRespBody bool) http.Handler {
+	return logHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		h.ServeHTTP(w, r)
+	}), logRespBody)
+}
+
 func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
@@ -85,27 +122,27 @@ func uploadHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func stdio_handle(con net.Conn) {
-	chan_to_stdout := stream_copy(con, os.Stdout)
-	chan_to_remote := stream_copy(os.Stdin, con)
+func stdioHandle(con net.Conn) {
+	chanToStdout := streamCopy(con, os.Stdout)
+	chanToRemote := streamCopy(os.Stdin, con)
 	select {
-	case <-chan_to_stdout:
+	case <-chanToStdout:
 		log.Println("Remote connection is closed")
-	case <-chan_to_remote:
+	case <-chanToRemote:
 		log.Println("Local program is terminated")
 	}
 }
 
-func stream_copy(src io.Reader, dst io.Writer) <-chan int {
+func streamCopy(src io.Reader, dst io.Writer) <-chan int {
 	buf := make([]byte, 1024)
-	sync_channel := make(chan int)
+	syncChannel := make(chan int)
 	go func() {
 		defer func() {
 			if con, ok := dst.(net.Conn); ok {
 				con.Close()
 				log.Printf("Connection from %v is closed\n", con.RemoteAddr())
 			}
-			sync_channel <- 0 // Notify that processing is finished
+			syncChannel <- 0 // Notify that processing is finished
 		}()
 		for {
 			var nBytes int
@@ -123,7 +160,7 @@ func stream_copy(src io.Reader, dst io.Writer) <-chan int {
 			}
 		}
 	}()
-	return sync_channel
+	return syncChannel
 }
 
 func main() {
@@ -137,6 +174,8 @@ func main() {
 	authPass := flag.String("auth-pass", randPassword, "HTTP Basic Authentication password")
 	authBypass := flag.Bool("no-auth", false, "do not enforce authentication")
 	unixSocket := flag.Bool("unix", false, "use a Unix socket instead of TCP")
+	logTraffic := flag.Bool("log", false, "log requests/responses")
+	logRespBody := flag.Bool("log-resp-body", false, "log response bodies as well (could contain binary data)")
 	flag.Parse()
 
 	absoluteDir, err := filepath.Abs(*rootDir)
@@ -153,12 +192,23 @@ func main() {
 	if !*authBypass {
 		if *authPass == randPassword {
 			log.Printf("Authentication data: %s:%s\n", *authUser, *authPass)
+			log.Printf("Authenticated URL: http")
 		}
-		http.HandleFunc("/upload", httpBasicAuth(uploadHandler, *authUser, *authPass, "Please provide login credentials"))
-		http.Handle("/", handlerAuthWrapper(http.FileServer(http.Dir(absoluteDir)), *authUser, *authPass, "Please provide login credentials"))
+		if *logTraffic {
+			http.HandleFunc("/upload", logHandler(httpBasicAuth(uploadHandler, *authUser, *authPass, "Please provide login credentials"), *logRespBody))
+			http.Handle("/", handlerLogWrapper(handlerAuthWrapper(http.FileServer(http.Dir(absoluteDir)), *authUser, *authPass, "Please provide login credentials"), *logRespBody))
+		} else {
+			http.HandleFunc("/upload", httpBasicAuth(uploadHandler, *authUser, *authPass, "Please provide login credentials"))
+			http.Handle("/", handlerAuthWrapper(http.FileServer(http.Dir(absoluteDir)), *authUser, *authPass, "Please provide login credentials"))
+		}
 	} else {
-		http.HandleFunc("/upload", uploadHandler)
-		http.Handle("/", http.FileServer(http.Dir(absoluteDir)))
+		if *logTraffic {
+			http.HandleFunc("/upload", logHandler(uploadHandler, *logRespBody))
+			http.Handle("/", handlerLogWrapper(http.FileServer(http.Dir(absoluteDir)), *logRespBody))
+		} else {
+			http.HandleFunc("/upload", uploadHandler)
+			http.Handle("/", http.FileServer(http.Dir(absoluteDir)))
+		}
 	}
 	if *unixSocket {
 		log.Println("Using Unix socket")

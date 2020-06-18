@@ -203,4 +203,4 @@ elif [ "$VERBOSE" -eq 2 ];then
     sshd_cmd+=" -d -d"
 fi
 
-socat tcp-l:"$PORT",fork,reuseaddr exec:"$sshd_cmd" |& sshd_log
+socat tcp-l:"$PORT",fork,reuseaddr exec:"$sshd_cmd" |& tee -a sshd_log

@@ -17,28 +17,28 @@ import (
 
 // Handles TC connection and perform synchorinization:
 // TCP -> Stdout and Stdin -> TCP
-func tcp_con_handle(con net.Conn) {
-	chan_to_stdout := stream_copy(con, os.Stdout)
-	chan_to_remote := stream_copy(os.Stdin, con)
+func handleTCP(con net.Conn) {
+	chanToStdout := streamCopy(con, os.Stdout)
+	chanToRemote := streamCopy(os.Stdin, con)
 	select {
-	case <-chan_to_stdout:
+	case <-chanToStdout:
 		log.Println("Remote connection is closed")
-	case <-chan_to_remote:
+	case <-chanToRemote:
 		log.Println("Local program is terminated")
 	}
 }
 
 // Performs copy operation between streams: os and tcp streams
-func stream_copy(src io.Reader, dst io.Writer) <-chan int {
+func streamCopy(src io.Reader, dst io.Writer) <-chan int {
 	buf := make([]byte, 1024)
-	sync_channel := make(chan int)
+	syncChannel := make(chan int)
 	go func() {
 		defer func() {
 			if con, ok := dst.(net.Conn); ok {
 				con.Close()
 				log.Printf("Connection from %v is closed\n", con.RemoteAddr())
 			}
-			sync_channel <- 0 // Notify that processing is finished
+			syncChannel <- 0 // Notify that processing is finished
 		}()
 		for {
 			var nBytes int
@@ -56,17 +56,17 @@ func stream_copy(src io.Reader, dst io.Writer) <-chan int {
 			}
 		}
 	}()
-	return sync_channel
+	return syncChannel
 }
 
 //Accept data from UPD connection and copy it to the stream
-func accept_from_udp_to_stream(src net.Conn, dst io.Writer) <-chan net.Addr {
+func UDPToStream(src net.Conn, dst io.Writer) <-chan net.Addr {
 	buf := make([]byte, 1024)
-	sync_channel := make(chan net.Addr)
+	syncChannel := make(chan net.Addr)
 	con, ok := src.(*net.UDPConn)
 	if !ok {
 		log.Printf("Input must be UDP connection")
-		return sync_channel
+		return syncChannel
 	}
 	go func() {
 		var remoteAddr net.Addr
@@ -83,7 +83,7 @@ func accept_from_udp_to_stream(src net.Conn, dst io.Writer) <-chan net.Addr {
 			}
 			if remoteAddr == nil && remoteAddr != addr {
 				remoteAddr = addr
-				sync_channel <- remoteAddr
+				syncChannel <- remoteAddr
 			}
 			_, err = dst.Write(buf[0:nBytes])
 			if err != nil {
@@ -92,13 +92,13 @@ func accept_from_udp_to_stream(src net.Conn, dst io.Writer) <-chan net.Addr {
 		}
 	}()
 	log.Println("Exit write_from_udp_to_stream")
-	return sync_channel
+	return syncChannel
 }
 
 // Put input date from the stream to UDP connection
-func put_from_stream_to_udp(src io.Reader, dst net.Conn, remoteAddr net.Addr) <-chan net.Addr {
+func streamToUDP(src io.Reader, dst net.Conn, remoteAddr net.Addr) <-chan net.Addr {
 	buf := make([]byte, 1024)
-	sync_channel := make(chan net.Addr)
+	syncChannel := make(chan net.Addr)
 	go func() {
 		for {
 			var nBytes int
@@ -119,20 +119,20 @@ func put_from_stream_to_udp(src io.Reader, dst net.Conn, remoteAddr net.Addr) <-
 			}
 		}
 	}()
-	return sync_channel
+	return syncChannel
 }
 
 // Handle UDP connection
-func udp_con_handle(con net.Conn) {
-	in_channel := accept_from_udp_to_stream(con, os.Stdout)
+func handleUDP(con net.Conn) {
+	inChannel := UDPToStream(con, os.Stdout)
 	log.Println("Waiting for remote connection")
-	remoteAddr := <-in_channel
+	remoteAddr := <-inChannel
 	log.Println("Connected from", remoteAddr)
-	out_channel := put_from_stream_to_udp(os.Stdin, con, remoteAddr)
+	outChannel := streamToUDP(os.Stdin, con, remoteAddr)
 	select {
-	case <-in_channel:
+	case <-inChannel:
 		log.Println("Remote connection is closed")
-	case <-out_channel:
+	case <-outChannel:
 		log.Println("Local program is terminated")
 	}
 }
@@ -140,7 +140,7 @@ func udp_con_handle(con net.Conn) {
 func main() {
 	var sourcePort string
 	var destinationPort string
-	var isUdp bool
+	var isUDP bool
 	var isListen bool
 	var host string
 	var proxy string
@@ -148,7 +148,7 @@ func main() {
 	var sslProxy bool
 	flag.StringVar(&sourcePort, "p", "", "Specifies the source port netcat should use, subject to privilege restrictions and availability.")
 	flag.StringVar(&proxy, "proxy", "", "Specify the HTTP proxy host and port, e. g.: 127.0.0.1:8080")
-	flag.BoolVar(&isUdp, "u", false, "Use UDP instead of the default option of TCP.")
+	flag.BoolVar(&isUDP, "u", false, "Use UDP instead of the default option of TCP.")
 	flag.BoolVar(&isListen, "l", false, "Used to specify that netcat should listen for an incoming connection rather than initiate a connection to a remote host.")
 	flag.BoolVar(&beSilent, "s", false, "Silent mode")
 	flag.BoolVar(&sslProxy, "ssl", false, "Create SSL Tunnel")
@@ -162,7 +162,7 @@ func main() {
 		os.Exit(1)
 	}
 	log.Println("Source port:", sourcePort)
-	if isUdp {
+	if isUDP {
 		log.Println("Protocol:", "udp")
 	} else {
 		log.Println("Protocol:", "tcp")
@@ -201,8 +201,8 @@ func main() {
 
 	log.Println("Hostname:", host)
 	log.Println("Port:", destinationPort)
-	isUdp = false
-	if !isUdp {
+	isUDP = false
+	if !isUDP {
 		log.Println("Work with TCP protocol")
 		if isListen {
 			listener, err := net.Listen("tcp", destinationPort)
@@ -215,7 +215,7 @@ func main() {
 				log.Fatalln(err)
 			}
 			log.Println("Connect from", con.RemoteAddr())
-			tcp_con_handle(con)
+			handleTCP(con)
 
 		} else if host != "" {
 			var con net.Conn
@@ -246,7 +246,7 @@ func main() {
 				}
 				log.Println("Connected to", host+destinationPort)
 			}
-			tcp_con_handle(con)
+			handleTCP(con)
 		} else {
 			flag.Usage()
 		}
@@ -263,7 +263,7 @@ func main() {
 			}
 			log.Println("Has been resolved UDP address:", addr)
 			log.Println("Listening on", destinationPort)
-			udp_con_handle(con)
+			handleUDP(con)
 		} else if host != "" {
 			addr, err := net.ResolveUDPAddr("udp", host+destinationPort)
 			if err != nil {
@@ -274,7 +274,7 @@ func main() {
 			if err != nil {
 				log.Fatalln(err)
 			}
-			udp_con_handle(con)
+			handleUDP(con)
 		}
 	}
 }

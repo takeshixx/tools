@@ -14,10 +14,16 @@ Building for Linux:
 go build -o gonc go_netcat.go
 ```
 
+or
+
+```bash
+make go_netcat
+```
+
 Building for Windows:
 
 ```bash
-GOOS=windows GOARCH=386 go build -o gonc go_netcat.go
+GOOS=windows GOARCH=386 go build -o gonc.exe go_netcat.go
 ```
 
 ## [observe.py](observe.py)

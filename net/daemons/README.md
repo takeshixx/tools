@@ -27,6 +27,12 @@ Building for Linux:
 go build -o http_server http_server.go
 ```
 
+or
+
+```bash
+make http_server
+```
+
 Building for Windows:
 
 ```bash

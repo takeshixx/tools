@@ -162,12 +162,10 @@ func main() {
 		os.Exit(1)
 	}
 	log.Println("Source port:", sourcePort)
-	if flag.Lookup("u") != nil {
-		if isUdp {
-			log.Println("Protocol:", "udp")
-		} else {
-			log.Println("Protocol:", "tcp")
-		}
+	if isUdp {
+		log.Println("Protocol:", "udp")
+	} else {
+		log.Println("Protocol:", "tcp")
 	}
 	if sourcePort != "" {
 		if _, err := strconv.Atoi(sourcePort); err != nil {

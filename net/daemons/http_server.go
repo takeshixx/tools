@@ -79,7 +79,8 @@ func logHandler(handler http.HandlerFunc, logRespBody bool) http.HandlerFunc {
 			return
 		}
 
-		logString := fmt.Sprintf("===REQUEST===\n%s\n===RESPONSE===\n%s", reqData, respData)
+		remoteAddr := r.RemoteAddr
+		logString := fmt.Sprintf("=== REQUEST FROM %s ===\n%s\n=== RESPONSE TO %s ===\n%s", remoteAddr, reqData, remoteAddr, respData)
 		log.Println(logString)
 
 		// This copies the recorded response to the response writer

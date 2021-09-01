@@ -1,7 +1,7 @@
 #!/bin/bash
 # Spawn a sshd on a specified port
 # (does not require root privileges)
-set -e
+set -o errexit -o pipefail -o noclobber -o nounset -e
 script=${0}
 
 function help(){
@@ -55,6 +55,8 @@ if [[ $# -lt 1 ]];then
     help
 fi
 
+
+# TODO: options after positional arguments will be ignored
 PORT=
 PUB_KEY=
 NO_RESTRICTIONS=

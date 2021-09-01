@@ -2,7 +2,7 @@
 
 set -x
 
-if [ "$#" -lt 1 ]; then
+if [ $# -lt 2 ]; then
     echo "${0} [host] [port]"
     exit 1
 fi
@@ -17,4 +17,4 @@ if ! which openssl >/dev/null;then
     exit 1
 fi
 
-RET="$(openssl s_client -showcerts -connect "${TARGET_ADDR}:${TARGET_PORT}" </dev/null)"
+$(openssl s_client -showcerts -connect "${TARGET_ADDR}:${TARGET_PORT}" </dev/null)

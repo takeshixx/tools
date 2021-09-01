@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 """Extract PDF files from KLMviewer.exe after
 decryption and decompression."""
 from __future__ import print_function
@@ -41,7 +42,9 @@ def on_message(message, data):
         
 
 def main(target_process):
-    session = frida.attach(target_process)
+    #session = frida.attach(target_process)
+    device = frida.get_device_manager().add_remote_device('192.168.56.106:1337')
+    session = device.attach(target_process)
 
     script = session.create_script("""
     var baseAddr = Module.findBaseAddress('KLMviewer.exe');

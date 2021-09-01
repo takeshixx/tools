@@ -110,10 +110,10 @@ openssl req -nodes -new -x509 \
         -keyout $out_dir/ca.key \
         -subj "$issuer" || die "Generating CA key and certificate failed"
         
-#if which keytool >/dev/null;then
-#    # Generate a Java keystore with the CA certificate
-#    keytool -import -trustcacerts -file $out_dir/ca.crt -alias cacert -storepass test123 -noprompt -keystore $out_dir/cacerts.jks || die "Generating Java keystore failed"
-#fi
+if which keytool >/dev/null;then
+    # Generate a Java keystore with the CA certificate
+    keytool -import -trustcacerts -file $out_dir/ca.crt -alias cacert -storepass test123 -noprompt -keystore $out_dir/cacerts.jks || die "Generating Java keystore failed"
+fi
 
 # Generate 2048 bit DH key
 # Note: Some implementations do not support
@@ -126,8 +126,6 @@ openssl genrsa \
         $key_size || die "Generating server key failed"
 
 # Generate server CSR
-echo "subject"
-echo "$subject"
 openssl req -new \
         -key $out_dir/server.key \
         -out $tmp_dir/server.req \

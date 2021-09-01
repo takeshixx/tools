@@ -17,4 +17,4 @@ if ! which openssl >/dev/null;then
     exit 1
 fi
 
-$(openssl s_client -showcerts -connect "${TARGET_ADDR}:${TARGET_PORT}" </dev/null)
+openssl s_client -showcerts -connect "${TARGET_ADDR}:${TARGET_PORT}" </dev/null

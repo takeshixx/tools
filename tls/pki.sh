@@ -17,6 +17,7 @@ out_dir="$1"
 issuer="$2"
 subject="$3"
 key_size=2048
+keystore_pass=abc123
 
 if [ ! -d "$out_dir" ];then
     echo "${out_dir} does not exist, will create it. Press CTRL+C to exit, RETURN to continue..."
@@ -112,7 +113,7 @@ openssl req -nodes -new -x509 \
         
 if which keytool >/dev/null;then
     # Generate a Java keystore with the CA certificate
-    keytool -import -trustcacerts -file $out_dir/ca.crt -alias cacert -storepass test123 -noprompt -keystore $out_dir/cacerts.jks || die "Generating Java keystore failed"
+    keytool -import -trustcacerts -file $out_dir/ca.crt -alias cacert -storepass $keystore_pass -noprompt -keystore $out_dir/cacerts.jks || die "Generating Java keystore failed"
 fi
 
 # Generate 2048 bit DH key
@@ -148,6 +149,7 @@ openssl x509 -req \
 openssl pkcs12 -export -nodes \
         -inkey $out_dir/server.key \
         -in $out_dir/server.crt \
+        -passout pass:$keystore_pass \
         -out $out_dir/server.p12 || die "Creating server PKCS#12 bundle failed"
 
 cat $out_dir/server.key > $out_dir/server.pem
@@ -176,7 +178,10 @@ openssl x509 -req \
 openssl pkcs12 -export -nodes \
         -inkey $out_dir/client.key \
         -in $out_dir/client.crt \
+        -passout pass:$keystore_pass \
         -out $out_dir/client.p12 || die "Generating client PKCS#12 bundle failed"
 
 cat $out_dir/client.key > $out_dir/client.pem
 cat $out_dir/client.crt >> $out_dir/client.pem
+
+echo "Note: .jks and .p12 pass is $keystore_pass"

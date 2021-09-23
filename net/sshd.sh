@@ -191,6 +191,8 @@ AllowAgentForwarding yes
 AllowTcpForwarding yes
 PrintMotd no
 Subsystem       sftp    /usr/lib/ssh/sftp-server
+ClientAliveInterval 30
+ClientAliveCountMax 3
 EOF"
 
 sshd_bin="sshd"

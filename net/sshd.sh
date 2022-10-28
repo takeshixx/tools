@@ -116,7 +116,7 @@ check_port "$PORT"
 socat=$(which socat)
 if [ ! -x "$socat" ];then
     err "socat not found or not executable"
-    exit
+    exit 1
 fi
 
 # Check if a public key has been provided
@@ -157,7 +157,15 @@ fi
 # sshd will refuse /tmp because
 # of it's permissions.
 home=~
-tmp_dir=$(mktemp -dt -p $home pki.XXXXXX)
+OS=$(uname)
+if [ "$OS" == "Linux" ];then
+    tmp_dir=$(mktemp -dt -p $home sshd.XXXXXX)
+elif [ "$OS" == "Darwin" ];then
+    tmp_dir=$(mktemp -dt sshd.XXXXXX)
+else
+    err "Unhandled OS type ${OSTYPE}"
+    exit 1
+fi
 trap "rm -rf ${tmp_dir}" EXIT TERM
 
 # Apply restrictions to the SSH key. Only reverse port forwarding
@@ -214,4 +222,4 @@ elif [ "$VERBOSE" -eq 2 ];then
     sshd_cmd+=" -d -d"
 fi
 
-socat tcp-l:"$PORT",fork,reuseaddr,bind="$BIND" exec:"$sshd_cmd" |& tee -a sshd_log
+socat tcp-l:"$PORT",fork,reuseaddr,bind="$BIND" exec:"$sshd_cmd" 2>&1 | tee -a sshd_log

@@ -12,6 +12,7 @@ function help(){
     echo "                      valid options: none, nocmd"
     echo "-s/--sshd-bin         provide alternative sshd binary path"
     echo "-b/--bind             IP to bind to (default: 127.0.0.1)"
+    echo "-l/--log              log file to append stdout/stderr to"
     echo "-v/--verbose          print verbose sshd output (repeat for more output)"
     echo "-h/--help             print this help page"
     exit 1
@@ -63,6 +64,7 @@ PUB_KEY=
 NO_RESTRICTIONS=
 SSHD_BIN=
 BIND="127.0.0.1"
+LOG_FILE=/dev/null
 VERBOSE=0
 POSITIONAL=()
 while [[ $# -gt 0 ]];do
@@ -85,6 +87,11 @@ while [[ $# -gt 0 ]];do
         ;;
         -b|--bind)
         BIND="$2"
+        shift
+        shift
+        ;;
+        -l|--log)
+        LOG_FILE="$2"
         shift
         shift
         ;;
@@ -225,4 +232,4 @@ elif [ "$VERBOSE" -eq 2 ];then
     sshd_cmd+=" -d -d"
 fi
 
-socat tcp-l:"$PORT",fork,reuseaddr,bind="$BIND" exec:"$sshd_cmd" 2>&1 | tee -a sshd_log
+socat tcp-l:"$PORT",fork,reuseaddr,bind="$BIND" exec:"$sshd_cmd" 2>&1 | tee -a "$LOG_FILE"

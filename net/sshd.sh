@@ -160,8 +160,10 @@ home=~
 OS=$(uname)
 if [ "$OS" == "Linux" ];then
     tmp_dir=$(mktemp -dt -p $home sshd.XXXXXX)
+    decoy_cmd=/bin/false
 elif [ "$OS" == "Darwin" ];then
     tmp_dir=$(mktemp -dt sshd.XXXXXX)
+    decoy_cmd=/usr/bin/false
 else
     err "Unhandled OS type ${OSTYPE}"
     exit 1
@@ -176,11 +178,11 @@ if [ "$NO_RESTRICTIONS" == "none" ];then
     echo "${PUB_KEY}" > "${tmp_dir}/authorized_keys"
 elif [ "$NO_RESTRICTIONS" == "nocmd" ];then
     info "Restricting shell access"
-    restrictions="restrict,command=\"/bin/false\",port-forwarding"
+    restrictions="restrict,command=\"${decoy_cmd}\",port-forwarding"
     echo "${restrictions} ${PUB_KEY}" > "$tmp_dir"/authorized_keys
 else
     info "Using default restrictions"
-    restrictions="restrict,command=\"/bin/false\",port-forwarding"
+    restrictions="restrict,command=\"${decoy_cmd}\",port-forwarding"
     restrictions+=",permitopen=\"127.0.0.1:22\""
     echo "${restrictions} ${PUB_KEY}" > "$tmp_dir"/authorized_keys
 fi

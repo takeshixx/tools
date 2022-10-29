@@ -202,7 +202,8 @@ HostKey $tmp_dir/ssh_host_ecdsa_key
 AuthorizedKeysFile $tmp_dir/authorized_keys
 PermitRootLogin yes
 PubkeyAuthentication yes
-ChallengeResponseAuthentication yes
+ChallengeResponseAuthentication no
+PasswordAuthentication no
 UsePAM no
 AllowAgentForwarding yes
 AllowTcpForwarding yes

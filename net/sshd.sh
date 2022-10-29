@@ -38,7 +38,7 @@ warn(){
 }
 
 sshd_log(){
-    while read data; do
+    while read -r data; do
         _log "[sshd] ${data}"
     done
 }
@@ -46,7 +46,7 @@ sshd_log(){
 # Check if the given port is valid
 function check_port {
     local -i port="10#${1}"
-    if (( $port < 1 || $port > 65535 ));then
+    if (( port < 1 || port > 65535 ));then
         err "Invalid port ${port}"
         exit 1
     fi
@@ -173,7 +173,7 @@ trap "rm -rf ${tmp_dir}" EXIT TERM
 if [ "$NO_RESTRICTIONS" == "none" ];then
     warn "Using no restrictions"
     restrictions=
-    echo "${PUB_KEY}" > $tmp_dir/authorized_keys
+    echo "${PUB_KEY}" > "${tmp_dir}/authorized_keys"
 elif [ "$NO_RESTRICTIONS" == "nocmd" ];then
     info "Restricting shell access"
     restrictions="restrict,command=\"/bin/false\",port-forwarding"
@@ -211,7 +211,7 @@ ClientAliveCountMax 3
 EOF"
 
 sshd_bin="sshd"
-if [ -n "$SSHD_BIN" -a -x "$SSHD_BIN" ];then
+if [ -n "$SSHD_BIN" ] && [ -x "$SSHD_BIN" ];then
     info "Using sshd binary ${SSHD_BIN}"
     sshd_bin="$SSHD_BIN"
 fi
